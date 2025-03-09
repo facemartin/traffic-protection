@@ -1,15 +1,27 @@
 (function() {
-  // 설정 가져오기
-  const script = document.currentScript;
+  // 설정 가져오기 - 스크립트 태그 찾기 개선
+  let scriptTag = document.currentScript;
+  
+  // document.currentScript가 null인 경우 대체 방법 (async 로드 시)
+  if (!scriptTag) {
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].src.includes('traffic-protection')) {
+        scriptTag = scripts[i];
+        break;
+      }
+    }
+  }
+  
   const config = {
-    clickThreshold: parseInt(script.getAttribute('data-threshold') || '3', 10),
-    timeWindow: parseInt(script.getAttribute('data-timewindow') || '10000', 10),
-    cookieExpiry: parseInt(script.getAttribute('data-expiry') || '86400', 10),
-    redirectDelay: parseInt(script.getAttribute('data-delay') || '1500', 10),
-    adClickThreshold: parseInt(script.getAttribute('data-ad-threshold') || '2', 10),
-    adTimeWindow: parseInt(script.getAttribute('data-ad-timewindow') || '60000', 10),
-    redirectUrl: script.getAttribute('data-redirect') || 'https://ecrm.police.go.kr/minwon/main',
-    botDetectionEnabled: script.getAttribute('data-bot-detection') !== 'false'
+    clickThreshold: parseInt(scriptTag ? scriptTag.getAttribute('data-threshold') : '3', 10) || 3,
+    timeWindow: parseInt(scriptTag ? scriptTag.getAttribute('data-timewindow') : '10000', 10) || 10000,
+    cookieExpiry: parseInt(scriptTag ? scriptTag.getAttribute('data-expiry') : '86400', 10) || 86400,
+    redirectDelay: parseInt(scriptTag ? scriptTag.getAttribute('data-delay') : '1500', 10) || 1500,
+    adClickThreshold: parseInt(scriptTag ? scriptTag.getAttribute('data-ad-threshold') : '2', 10) || 2,
+    adTimeWindow: parseInt(scriptTag ? scriptTag.getAttribute('data-ad-timewindow') : '60000', 10) || 60000,
+    redirectUrl: scriptTag && scriptTag.getAttribute('data-redirect') ? scriptTag.getAttribute('data-redirect') : 'https://ecrm.police.go.kr/minwon/main',
+    botDetectionEnabled: scriptTag ? scriptTag.getAttribute('data-bot-detection') !== 'false' : true
   };
   
   // 트래픽 보호 객체
@@ -30,6 +42,18 @@
     
     // 초기화
     init: function() {
+      // DOM이 준비되었는지 확인
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          this.initAfterDOMReady();
+        });
+      } else {
+        this.initAfterDOMReady();
+      }
+    },
+    
+    // DOM 준비 후 초기화
+    initAfterDOMReady: function() {
       this.checkPreviousVisit();
       document.addEventListener('click', this.handleClick.bind(this));
       window.addEventListener('beforeunload', this.logVisit.bind(this));
@@ -40,6 +64,9 @@
       
       this.monitorAdClicks();
       this.setupLinkProtection();
+      
+      // 디버깅 메시지
+      console.log('TrafficProtection 초기화 완료. 설정:', config);
     },
     
     // 이전 방문 확인
@@ -68,6 +95,9 @@
       this.state.clickCount++;
       this.state.lastClickTime = now;
       
+      // 디버깅 메시지
+      console.log(`클릭 감지: ${this.state.clickCount}/${config.clickThreshold+1}`);
+      
       if (this.state.clickCount > config.clickThreshold) {
         this.state.redirectBlocked = true;
         console.warn('과도한 클릭 감지: 리다이렉트 제한됨');
@@ -92,6 +122,12 @@
     
     // 리다이렉트 처리
     handleRedirect: function(url) {
+      // 디버깅 메시지
+      console.log('리다이렉트 처리:', url);
+      console.log('차단 상태:', this.state.redirectBlocked);
+      console.log('쿠키 clickLimit:', this.getCookie('clickLimit'));
+      console.log('쿠키 botSuspect:', this.getCookie('botSuspect'));
+      
       if (this.state.redirectBlocked || this.getCookie('clickLimit') === 'true' || this.getCookie('botSuspect') === 'true') {
         console.warn('리다이렉트 차단됨: 무효 트래픽 의심');
         
@@ -115,6 +151,9 @@
       date.setTime(date.getTime() + (seconds * 1000));
       const expires = "expires=" + date.toUTCString();
       document.cookie = name + "=" + value + ";" + expires + ";path=/";
+      
+      // 디버깅 메시지
+      console.log(`쿠키 설정: ${name}=${value}, 만료: ${seconds}초`);
     },
     
     // 쿠키 가져오기
@@ -140,6 +179,7 @@
       setTimeout(() => {
         if (mouseMovements < 5) {
           this.state.botScore += 15;
+          console.log('마우스 움직임 적음: 봇 점수 증가', this.state.botScore);
         }
       }, 5000);
       
@@ -151,6 +191,7 @@
       setTimeout(() => {
         if (scrollEvents < 2) {
           this.state.botScore += 10;
+          console.log('스크롤 적음: 봇 점수 증가', this.state.botScore);
         }
       }, 8000);
       
@@ -162,14 +203,17 @@
       const ua = navigator.userAgent.toLowerCase();
       if (ua.includes('headless') || ua.includes('phantomjs') || ua.includes('selenium')) {
         this.state.botScore += 50;
+        console.log('자동화 도구 감지: 봇 점수 증가', this.state.botScore);
       }
       
       if (window.innerWidth < 100 || window.innerHeight < 100) {
         this.state.botScore += 20;
+        console.log('비정상 화면 크기: 봇 점수 증가', this.state.botScore);
       }
       
       if (navigator.webdriver) {
         this.state.botScore += 50;
+        console.log('WebDriver 감지: 봇 점수 증가', this.state.botScore);
       }
     },
     
@@ -177,11 +221,13 @@
     analyzeClickPattern: function(e) {
       if (this.state.lastClickX === e.clientX && this.state.lastClickY === e.clientY) {
         this.state.botScore += 10;
+        console.log('동일 위치 클릭: 봇 점수 증가', this.state.botScore);
       }
       
       const clickInterval = Date.now() - this.state.lastClickTime;
       if (this.state.lastClickInterval && Math.abs(this.state.lastClickInterval - clickInterval) < 50) {
         this.state.botScore += 15;
+        console.log('규칙적 클릭 간격: 봇 점수 증가', this.state.botScore);
       }
       
       this.state.lastClickX = e.clientX;
@@ -191,7 +237,8 @@
     
     // 애드센스 광고 클릭 모니터링
     monitorAdClicks: function() {
-      window.addEventListener('load', () => {
+      // 페이지 로드 후 애드센스 광고 요소 찾기
+      const setupAdMonitoring = () => {
         const adSelectors = [
           'ins.adsbygoogle',
           '.google-ad',
@@ -207,11 +254,18 @@
           const adElements = document.querySelectorAll(selector);
           adElements.forEach(ad => {
             ad.addEventListener('click', this.handleAdClick.bind(this));
+            console.log('광고 요소에 클릭 리스너 추가:', selector);
           });
         });
         
         this.observeNewAds();
-      });
+      };
+      
+      if (document.readyState === 'loading') {
+        window.addEventListener('load', setupAdMonitoring);
+      } else {
+        setupAdMonitoring();
+      }
     },
     
     // 광고 클릭 처리
@@ -224,6 +278,8 @@
       
       this.state.adClickCount++;
       this.state.lastAdClickTime = now;
+      
+      console.log(`광고 클릭 감지: ${this.state.adClickCount}/${config.adClickThreshold+1}`);
       
       if (this.state.adClickCount > config.adClickThreshold) {
         console.warn('과도한 광고 클릭 감지');
@@ -254,11 +310,13 @@
                      node.classList.contains('google-ad') ||
                      node.classList.contains('google-ads'))) {
                   node.addEventListener('click', this.handleAdClick.bind(this));
+                  console.log('동적 광고 요소에 클릭 리스너 추가');
                 }
                 
                 const adElements = node.querySelectorAll('.adsbygoogle, .google-ad, .google-ads, [id*="google_ads"], [class*="google-ad"], [id*="googlead"]');
                 adElements.forEach(ad => {
                   ad.addEventListener('click', this.handleAdClick.bind(this));
+                  console.log('동적 광고 하위 요소에 클릭 리스너 추가');
                 });
               }
             }
@@ -270,11 +328,13 @@
         childList: true,
         subtree: true
       });
+      
+      console.log('동적 광고 요소 감시 시작');
     },
     
     // 링크 보호 설정
     setupLinkProtection: function() {
-      window.addEventListener('load', () => {
+      const setupLinkMonitoring = () => {
         // 외부 링크 보호
         const links = document.querySelectorAll('a[href^="http"]');
         links.forEach(link => {
@@ -282,17 +342,36 @@
           if (!link.href.includes(window.location.hostname)) {
             link.addEventListener('click', (e) => {
               e.preventDefault();
+              console.log('외부 링크 클릭 감지:', link.href);
               this.handleRedirect(link.href);
             });
           }
         });
-      });
+        
+        console.log('외부 링크 보호 설정 완료');
+      };
+      
+      if (document.readyState === 'loading') {
+        window.addEventListener('load', setupLinkMonitoring);
+      } else {
+        setupLinkMonitoring();
+      }
+    },
+    
+    // 디버깅 정보 출력
+    debug: function() {
+      console.log('TrafficProtection 상태:', this.state);
+      console.log('설정:', config);
+      console.log('쿠키 clickLimit:', this.getCookie('clickLimit'));
+      console.log('쿠키 botSuspect:', this.getCookie('botSuspect'));
+      console.log('쿠키 lastVisit:', this.getCookie('lastVisit'));
+      console.log('쿠키 adClickLimit:', this.getCookie('adClickLimit'));
     }
   };
   
   // 초기화
   TrafficProtection.init();
   
-  // 전역 객체에 노출 (디버깅용, 필요 없으면 제거)
+  // 전역 객체에 노출 (디버깅용)
   window.TrafficProtection = TrafficProtection;
 })();
