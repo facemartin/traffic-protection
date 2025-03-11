@@ -17,7 +17,7 @@
 (function() {
   // 설정
   const config = {
-    clickThreshold: 8,         // 단위 시간당 최대 클릭 수
+    clickThreshold: 3,         // 단위 시간당 최대 클릭 수
     timeWindow: 10000,         // 시간 창 (밀리초) - 10초
     cookieExpiry: 86400,       // 쿠키 만료 시간 (초) - 24시간
     redirectDelay: 1500,       // 리다이렉트 지연 시간 (밀리초)
