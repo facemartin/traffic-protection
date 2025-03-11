@@ -209,3 +209,131 @@ function checkCookies() {
   
   return "쿠키 확인 완료";
 }
+
+// 전역 스코프에 강력한 쿠키 초기화 함수 추가
+window.clearAllCookies = function() {
+  console.log("강력한 쿠키 초기화 시작...");
+  
+  try {
+    // 모든 쿠키 목록 가져오기
+    const cookies = document.cookie.split(";");
+    console.log(`현재 쿠키 수: ${cookies.length}`);
+    
+    // 특정 쿠키 강제 삭제
+    const cookiesToDelete = ["clickLimit", "adClickLimit", "botSuspect", "lastVisit"];
+    
+    // 여러 방법으로 쿠키 삭제 시도
+    cookiesToDelete.forEach(name => {
+      // 방법 1: 기본 경로
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      
+      // 방법 2: 도메인 지정
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      
+      // 방법 3: 상위 도메인 시도
+      const domain = window.location.hostname;
+      if (domain.indexOf('.') !== -1) {
+        const topDomain = domain.substring(domain.indexOf('.'));
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${topDomain};`;
+      }
+      
+      // 방법 4: 경로 없이 시도
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+      
+      console.log(`${name} 쿠키 삭제 시도 완료`);
+    });
+    
+    // 모든 쿠키 강제 삭제 시도
+    cookies.forEach(cookie => {
+      const cookieName = cookie.split("=")[0].trim();
+      
+      // 방법 1: 기본 경로
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      
+      // 방법 2: 도메인 지정
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+    });
+    
+    // TrafficProtection 객체 상태 초기화
+    if (window.TrafficProtection) {
+      window.TrafficProtection.clickCount = 0;
+      window.TrafficProtection.redirectBlocked = false;
+      console.log("TrafficProtection 상태 초기화 완료");
+    }
+    
+    console.log("쿠키 초기화 후 상태:");
+    console.log("현재 쿠키: " + document.cookie);
+    
+    // clickLimit 쿠키 확인
+    const clickLimitCookie = document.cookie
+      .split(';')
+      .find(c => c.trim().startsWith('clickLimit='));
+      
+    if (clickLimitCookie) {
+      console.warn("⚠️ 초기화 후에도 clickLimit 쿠키가 존재합니다: " + clickLimitCookie);
+    } else {
+      console.log("✅ clickLimit 쿠키가 성공적으로 삭제되었습니다");
+    }
+    
+    return "쿠키 초기화 완료. 현재 쿠키: " + document.cookie;
+  } catch (error) {
+    console.error("쿠키 초기화 중 오류 발생:", error);
+    return "쿠키 초기화 중 오류 발생: " + error.message;
+  }
+};
+
+// 쿠키 상태 확인 함수 추가
+window.checkAllCookies = function() {
+  console.log("=== 쿠키 상태 확인 ===");
+  
+  try {
+    const cookies = document.cookie.split(";");
+    console.log(`총 쿠키 수: ${cookies.length}`);
+    
+    if (cookies.length <= 1 && cookies[0] === "") {
+      console.log("✅ 쿠키가 없습니다");
+    } else {
+      console.log("현재 모든 쿠키:");
+      cookies.forEach(cookie => {
+        if (cookie.trim() !== "") {
+          console.log(`- ${cookie.trim()}`);
+        }
+      });
+      
+      // clickLimit 쿠키 확인
+      const clickLimitCookie = cookies.find(c => c.trim().startsWith('clickLimit='));
+      if (clickLimitCookie) {
+        console.warn("⚠️ clickLimit 쿠키가 존재합니다: " + clickLimitCookie.trim());
+        console.log("쿠키 초기화가 필요합니다. 'clearAllCookies()' 함수를 실행하세요.");
+      } else {
+        console.log("✅ clickLimit 쿠키가 없습니다 (정상)");
+      }
+    }
+    
+    console.log("=== 쿠키 관리 도움말 ===");
+    console.log("1. 쿠키 초기화: clearAllCookies()");
+    console.log("2. 쿠키 상태 확인: checkAllCookies()");
+    
+    return "쿠키 상태 확인 완료";
+  } catch (error) {
+    console.error("쿠키 확인 중 오류 발생:", error);
+    return "쿠키 확인 중 오류 발생: " + error.message;
+  }
+};
+
+// 페이지 로드 시 자동으로 쿠키 상태 확인
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("=== 트래픽 보호 스크립트 디버깅 정보 ===");
+  console.log("쿠키 확인: checkAllCookies()");
+  console.log("쿠키 초기화: clearAllCookies()");
+  
+  // clickLimit 쿠키 확인
+  const clickLimitCookie = document.cookie
+    .split(';')
+    .find(c => c.trim().startsWith('clickLimit='));
+    
+  if (clickLimitCookie) {
+    console.warn("⚠️ 경고: clickLimit 쿠키가 존재합니다. 리다이렉트가 차단될 수 있습니다.");
+    console.log("쿠키를 초기화하려면 콘솔에서 'clearAllCookies()' 함수를 실행하세요.");
+  }
+});
