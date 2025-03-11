@@ -7,6 +7,17 @@
     "type": "git",
     "url": "git+https://github.com/facemartin/traffic-protection.git"
   },
+  "keywords": [
+    "traffic",
+    "protection",
+    "security",
+    "anti-bot",
+    "click-protection"
+  ],
   "author": "facemartin",
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/facemartin/traffic-protection/issues"
+  },
+  "homepage": "https://github.com/facemartin/traffic-protection#readme"
 }
