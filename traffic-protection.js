@@ -183,37 +183,29 @@
 </script>
 */
 
-function clearAllCookies() {
-  // 모든 쿠키 삭제 시도
-  const cookies = document.cookie.split(";");
-  console.log("쿠키 초기화 시작...");
-  console.log("현재 쿠키 수: " + cookies.length);
-  
-  // 특정 쿠키 삭제
-  deleteCookie("clickLimit");
-  deleteCookie("adClickLimit");
-  deleteCookie("botSuspect");
-  deleteCookie("lastVisit");
-  
-  // TrafficProtection 객체가 있으면 상태 초기화
-  if (window.TrafficProtection) {
-    window.TrafficProtection.clickCount = 0;
-    window.TrafficProtection.redirectBlocked = false;
-    console.log("TrafficProtection 상태 초기화 완료");
-  }
+function resetCookies() {
+  document.cookie = "clickLimit=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "adClickLimit=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "botSuspect=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "lastVisit=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   
   console.log("쿠키 초기화 완료");
+  return "쿠키가 초기화되었습니다.";
+}
+
+function checkCookies() {
   console.log("현재 쿠키: " + document.cookie);
   
-  // 특정 쿠키 삭제 함수
-  function deleteCookie(name) {
-    // 여러 경로와 도메인 조합으로 삭제 시도
-    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname + ";";
-    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+  // clickLimit 쿠키 확인
+  const clickLimitCookie = document.cookie
+    .split(';')
+    .find(c => c.trim().startsWith('clickLimit='));
     
-    console.log(name + " 쿠키 삭제 시도");
+  if (clickLimitCookie) {
+    console.warn("⚠️ clickLimit 쿠키가 존재합니다: " + clickLimitCookie);
+  } else {
+    console.log("✅ clickLimit 쿠키가 없습니다 (정상)");
   }
   
-  return "쿠키 초기화 완료. 현재 쿠키: " + document.cookie;
+  return "쿠키 확인 완료";
 }
