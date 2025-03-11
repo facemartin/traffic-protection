@@ -148,16 +148,13 @@
 
   // 초기화
   function init() {
-    // 이전 차단 기록 확인
     const clickLimitCookie = getCookie('clickLimit');
     if (clickLimitCookie === 'true') {
       redirectBlocked = true;
     }
     
-    // 전역 클릭 이벤트 리스너 등록
     document.addEventListener('click', handleGlobalClick);
     
-    // DOM 로딩 상태에 따라 이벤트 핸들러 설정
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setupEventHandlers);
     } else {
