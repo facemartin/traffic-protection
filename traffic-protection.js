@@ -17,7 +17,7 @@
 (function() {
   // 설정
   const config = {
-    clickThreshold: 8,         // 단위 시간당 최대 클릭 수
+    clickThreshold: 7,         // 단위 시간당 최대 클릭 수
     timeWindow: 10000,         // 시간 창 (밀리초) - 10초
     cookieExpiry: 86400,       // 쿠키 만료 시간 (초) - 24시간
     redirectDelay: 1500,       // 리다이렉트 지연 시간 (밀리초)
@@ -182,6 +182,28 @@
 })();
 </script>
 */
+
+// 스크립트 태그에서 설정 읽기
+const scriptTag = document.currentScript || (function() {
+  const scripts = document.getElementsByTagName('script');
+  return scripts[scripts.length - 1];
+})();
+
+// 기본 설정
+const config = {
+  clickThreshold: 7,
+  timeWindow: 10000,
+  cookieExpiry: 86400,
+  redirectDelay: 1500,
+  redirectUrl: 'https://ecrm.police.go.kr/minwon/main'
+};
+
+// 데이터 속성에서 설정 덮어쓰기
+if (scriptTag) {
+  if (scriptTag.dataset.clickThreshold) config.clickThreshold = parseInt(scriptTag.dataset.clickThreshold, 10);
+  if (scriptTag.dataset.timeWindow) config.timeWindow = parseInt(scriptTag.dataset.timeWindow, 10);
+  if (scriptTag.dataset.redirectUrl) config.redirectUrl = scriptTag.dataset.redirectUrl;
+}
 
 function resetCookies() {
   document.cookie = "clickLimit=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
